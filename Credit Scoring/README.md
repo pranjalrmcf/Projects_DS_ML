@@ -1,4 +1,4 @@
-# Loan Default Prediction Project
+# Credit Scoring Project
 
 ## Overview
 This project aims to predict loan defaults using machine learning techniques. It involves extensive data preprocessing, exploratory data analysis, feature engineering, and model building using a Random Forest classifier.
@@ -40,11 +40,17 @@ This project aims to predict loan defaults using machine learning techniques. It
 ## Results
 - Cross-validation scores: [0.98292285, 0.98084837, 0.98171771, 0.98022894, 0.98089307]
 - Mean CV score: 0.9813221906820144
-- Training Accuracy: 0.9974496424029429
-- Test Accuracy: [To be filled after running on test data]
+- Test Accuracy: 0.9974496424029429
 
 ## Classification Report
-[To be filled after running on test data]
+              precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00    275486
+           1       1.00      0.96      0.98     17022
+
+    accuracy                           1.00    292508
+   macro avg       1.00      0.98      0.99    292508
+weighted avg       1.00      1.00      1.00    292508
 
 ## Usage
 1. Run `data_analysis.py` for exploratory data analysis and feature selection.
