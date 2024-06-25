@@ -48,9 +48,9 @@ This project aims to predict loan defaults using machine learning techniques. It
            0       1.00      1.00      1.00    275486
            1       1.00      0.96      0.98     17022
 
-    accuracy                           1.00    292508
-   macro avg       1.00      0.98      0.99    292508
-weighted avg       1.00      1.00      1.00    292508
+    accuracy                            1.00    292508
+    macro avg       1.00      0.98      0.99    292508
+    weighted avg    1.00      1.00      1.00    292508
 
 ## Usage
 1. Run `data_analysis.py` for exploratory data analysis and feature selection.
