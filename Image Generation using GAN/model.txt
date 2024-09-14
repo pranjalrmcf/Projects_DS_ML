@@ -1,0 +1,334 @@
+# Importing necessary libraries
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import warnings
+from tqdm.notebook import tqdm
+
+# PyTorch specific imports
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torchvision import transforms
+from torchvision.io import read_image
+from torch.utils.data import Dataset, DataLoader, TensorDataset
+from torchvision import datasets, transforms
+from torch.nn import functional as F
+from torchvision.utils import save_image, make_grid
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+
+BASE_DIR = 'images'
+
+# load complete image paths to the list
+image_paths = []
+for image_name in os.listdir(BASE_DIR):
+    image_path = os.path.join(BASE_DIR, image_name)
+    image_paths.append(image_path)
+
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+import numpy as np
+from tqdm import tqdm
+
+# Set target size for resizing (ensure consistent dimensions)
+target_size = (64, 64)
+
+# Load and preprocess images
+train_images = []
+for path in tqdm(image_paths):
+    try:
+        img = load_img(path, target_size=target_size)  # Resize the image
+        img_array = img_to_array(img)  # Convert to array with shape (64, 64, 3)
+        img_array = img_array.astype('float32') / 127.5 - 1  # Normalize to [-1, 1]
+        train_images.append(img_array)  # Append to the list
+    except Exception as e:
+        print(f"Error loading image {path}: {e}")
+
+# Convert list to numpy array
+train_images = np.array(train_images)
+
+# Check shape of the loaded image data
+print(f"Shape of the dataset: {train_images.shape}")  # Should be (N, 64, 64, 3)
+
+import torch
+
+# Transpose to (N, C, H, W) format expected by PyTorch
+train_images = np.transpose(train_images, (0, 3, 1, 2))
+
+# Convert to PyTorch tensor
+train_images_tensor = torch.tensor(train_images, dtype=torch.float32)
+
+# Check shape of the loaded image data
+print(f"Shape of the dataset: {train_images_tensor.shape}")  # Should be (N, 3, 64, 64)
+
+# Check if GPU is available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+import torch.nn as nn
+
+LATENT_DIM = 100  # Latent vector dimension
+CHANNELS = 3      # Number of image channels (RGB)
+
+class Generator(nn.Module):
+    def __init__(self):
+        super(Generator, self).__init__()
+
+        self.init_size = 8  # Output size of the first deconv block (after fc)
+        self.fc = nn.Sequential(
+            nn.Linear(LATENT_DIM, 512 * self.init_size * self.init_size),
+            nn.ReLU(True)
+        )
+
+        self.deconv_blocks = nn.Sequential(
+            nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1),  # 8x8 -> 16x16
+            nn.BatchNorm2d(256),
+            nn.ReLU(True),
+
+            nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1),  # 16x16 -> 32x32
+            nn.BatchNorm2d(128),
+            nn.ReLU(True),
+
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),   # 32x32 -> 64x64
+            nn.BatchNorm2d(64),
+            nn.ReLU(True),
+
+            nn.Conv2d(64, CHANNELS, kernel_size=3, stride=1, padding=1),       # 64x64 -> 64x64x3
+            nn.Tanh()  # Output range [-1, 1]
+        )
+
+    def forward(self, x):
+        x = self.fc(x)
+        x = x.view(x.size(0), 512, self.init_size, self.init_size)
+        x = self.deconv_blocks(x)
+        return x
+
+class Discriminator(nn.Module):
+    def __init__(self, input_shape=(3, 64, 64), alpha=0.2):
+        super(Discriminator, self).__init__()
+
+        self.conv_blocks = nn.Sequential(
+            nn.Conv2d(input_shape[0], 64, kernel_size=4, stride=2, padding=1),   # 64x64 -> 32x32
+            nn.LeakyReLU(negative_slope=alpha, inplace=True),
+
+            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),              # 32x32 -> 16x16
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(negative_slope=alpha, inplace=True),
+
+            nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1),             # 16x16 -> 8x8
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(negative_slope=alpha, inplace=True),
+
+            nn.Conv2d(256, 512, kernel_size=4, stride=2, padding=1),             # 8x8 -> 4x4
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(negative_slope=alpha, inplace=True),
+        )
+
+        self.flatten = nn.Flatten()
+        self.dropout = nn.Dropout(0.3)
+        self.fc = nn.Sequential(
+            nn.Linear(512 * 4 * 4, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        x = self.conv_blocks(x)
+        x = self.flatten(x)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
+
+# Instantiate and move the models to the device
+generator = Generator().to(device)
+discriminator = Discriminator().to(device)
+
+# Apply weight initialization
+def weights_init(m):
+    classname = m.__class__.__name__
+    if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d, nn.Linear)):
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+        if m.bias is not None:
+            nn.init.constant_(m.bias.data, 0)
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
+
+# Apply the weight initialization
+generator.apply(weights_init)
+discriminator.apply(weights_init)
+
+class DCGAN:
+    def __init__(self, generator, discriminator, latent_dim, device):
+        self.generator = generator
+        self.discriminator = discriminator
+        self.latent_dim = latent_dim
+        self.device = device
+
+        # Create loss and optimizer placeholders
+        self.g_loss_metric = []
+        self.d_loss_metric = []
+
+    # Compile method to set up the optimizers and loss function
+    def compile(self, g_optimizer, d_optimizer, loss_fn):
+        self.g_optimizer = g_optimizer
+        self.d_optimizer = d_optimizer
+        self.loss_fn = loss_fn
+
+    # Method to generate random noise
+    def generate_noise(self, batch_size):
+        return torch.randn(batch_size, self.latent_dim, device=self.device)
+
+    # Train step function
+    def train_step(self, real_images):
+        batch_size = real_images.size(0)
+
+        # Move real images to the appropriate device
+        real_images = real_images.to(self.device)
+
+        # Step 1: Train the discriminator
+        self.discriminator.train()
+        self.generator.eval()
+
+        # Generate fake images
+        random_noise = self.generate_noise(batch_size)
+        fake_images = self.generator(random_noise)
+
+        # Create real and fake labels
+        real_labels = torch.ones((batch_size, 1), device=self.device)
+        fake_labels = torch.zeros((batch_size, 1), device=self.device)
+
+        # Add label smoothing to real labels
+        real_labels_smooth = real_labels - 0.05 * torch.rand(real_labels.size(), device=self.device)
+
+        # Discriminator loss on real images
+        pred_real = self.discriminator(real_images)
+        d_loss_real = self.loss_fn(pred_real, real_labels_smooth)
+
+        # Discriminator loss on fake images
+        pred_fake = self.discriminator(fake_images.detach())
+        d_loss_fake = self.loss_fn(pred_fake, fake_labels)
+
+        # Total discriminator loss
+        d_loss = (d_loss_real + d_loss_fake) / 2
+
+        # Backpropagation for discriminator
+        self.d_optimizer.zero_grad()
+        d_loss.backward()
+        self.d_optimizer.step()
+
+        # Step 2: Train the generator
+        self.discriminator.eval()
+        self.generator.train()
+
+        # Generate fake images
+        random_noise = self.generate_noise(batch_size)
+        fake_images = self.generator(random_noise)
+
+        # Generator wants the discriminator to classify fake images as real (without label smoothing)
+        pred_fake = self.discriminator(fake_images)
+        g_loss = self.loss_fn(pred_fake, real_labels)
+
+        # Backpropagation for generator
+        self.g_optimizer.zero_grad()
+        g_loss.backward()
+        self.g_optimizer.step()
+
+        # Record the losses for this step
+        self.g_loss_metric.append(g_loss.item())
+        self.d_loss_metric.append(d_loss.item())
+
+        return {'d_loss': d_loss.item(), 'g_loss': g_loss.item()}
+
+    # Method to retrieve the current metrics
+    def metrics(self):
+        avg_g_loss = np.mean(self.g_loss_metric)
+        avg_d_loss = np.mean(self.d_loss_metric)
+        return {'g_loss': avg_g_loss, 'd_loss': avg_d_loss}
+
+class DCGANMonitor:
+    def __init__(self, generator, num_imgs=25, latent_dim=100, save_dir='generated_images', device='cpu', display_images=True):
+        self.num_imgs = num_imgs
+        self.latent_dim = latent_dim
+        self.generator = generator
+        self.device = device
+        self.save_dir = save_dir
+        self.display_images = display_images
+
+        # Create a directory to save generated images
+        os.makedirs(self.save_dir, exist_ok=True)
+
+        # Generate fixed random noise for consistent image generation across epochs
+        self.noise = torch.randn(num_imgs, latent_dim, device=self.device)
+
+    # Method to generate images and display them at the end of each epoch
+    def on_epoch_end(self, epoch):
+        # Generate fake images from the fixed random noise
+        with torch.no_grad():
+            self.generator.eval()
+            generated_images = self.generator(self.noise)
+            generated_images = (generated_images * 0.5) + 0.5  # Denormalize from [-1, 1] to [0, 1]
+            self.generator.train()
+
+        # Save the generated images to disk
+        save_path = os.path.join(self.save_dir, f'epoch_{epoch:03d}.png')
+        nrow = min(self.num_imgs, 5)
+        save_image(generated_images, save_path, nrow=nrow)
+        print(f"Saved generated images for epoch {epoch} at {save_path}")
+
+        # Display images inline (optional)
+        if self.display_images:
+            grid = make_grid(generated_images, nrow=nrow)
+            plt.figure(figsize=(8, 8))
+            plt.imshow(np.transpose(grid.cpu().numpy(), (1, 2, 0)))
+            plt.axis('off')
+            plt.show()
+
+    # Method to save the generator model after training
+    def on_train_end(self, path='generator.pth'):
+        torch.save(self.generator.state_dict(), path)
+        print(f"Generator model saved to {path}")
+
+import torch.optim as optim
+import torch.nn as nn
+
+# Instantiate the DCGAN
+dcgan = DCGAN(generator=generator, discriminator=discriminator, latent_dim=LATENT_DIM, device=device)
+
+# Compile the model with optimizers and loss function
+g_optimizer = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+d_optimizer = optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+loss_fn = nn.BCELoss()
+
+dcgan.compile(g_optimizer=g_optimizer, d_optimizer=d_optimizer, loss_fn=loss_fn)
+
+from torch.utils.data import DataLoader, TensorDataset
+
+# Set up the batch size and number of epochs
+batch_size = 64  # Adjust as needed
+N_EPOCHS = 50
+
+# Create the Dataset and DataLoader
+dataset = TensorDataset(train_images_tensor)
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+# Initialize the monitor
+monitor = DCGANMonitor(generator=generator, num_imgs=25, latent_dim=LATENT_DIM, device=device)
+
+# Training loop
+for epoch in range(N_EPOCHS):
+    # Reset metrics at the start of each epoch
+    dcgan.g_loss_metric = []
+    dcgan.d_loss_metric = []
+    
+    for real_images_batch in dataloader:
+        real_images = real_images_batch[0].to(device)
+        metrics = dcgan.train_step(real_images)
+    
+    # Call the monitor at the end of each epoch
+    monitor.on_epoch_end(epoch)
+    
+    # Calculate and print the average metrics
+    epoch_metrics = dcgan.metrics()
+    print(f"Epoch {epoch+1}/{N_EPOCHS}, D Loss: {epoch_metrics['d_loss']:.4f}, G Loss: {epoch_metrics['g_loss']:.4f}")
+
+# Save the generator model at the end of training
+monitor.on_train_end(path='generator_final.pth')
+
