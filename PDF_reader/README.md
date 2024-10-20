@@ -7,7 +7,7 @@ This application allows users to upload multiple PDF documents and interact with
 - 📄 Upload multiple PDF documents.
 - 📚 Extract and split text from uploaded PDFs for efficient processing.
 - 💡 Use Sentence Transformer embeddings and FAISS for vector storage and similarity search.
-- 🤖 Leverage GPT-Neo for natural language understanding and response generation.
+- 🤖 Leverage HuggingFace for natural language understanding and response generation.
 - 💬 Maintain chat history for a natural conversational experience.
 
 ## Requirements
