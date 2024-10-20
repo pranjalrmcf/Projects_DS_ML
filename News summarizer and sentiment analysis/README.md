@@ -125,11 +125,6 @@ cd <repository_directory>
 
 ---
 
-## License
-This project is licensed under the MIT License.
-
----
-
 ## Acknowledgments
 - **Newspaper3k** for providing a convenient interface for news scraping.
 - **Hugging Face Transformers** for the summarization model.
