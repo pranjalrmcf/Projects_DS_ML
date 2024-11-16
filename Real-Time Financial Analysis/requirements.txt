@@ -1,0 +1,7 @@
+yfinance
+transformers
+pandas
+streamlit
+langgraph
+ta 
+torch
