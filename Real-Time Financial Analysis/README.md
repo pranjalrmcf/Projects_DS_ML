@@ -31,10 +31,11 @@ This project is an AI-powered financial dashboard that provides real-time analys
    git clone https://github.com/your-username/financial-dashboard.git
    cd financial-dashboard
 2. Install the required dependencies:
-   ```pip install -r requirements.txt
+   ```bash
+   pip install -r requirements.txt
 3. Launch the Streamlit app:
-   ```streamlit run app.py
-
+   ```bash
+   streamlit run app.py
 
 ## Technologies Used
 1. LangGraph: For orchestrating AI agents and modular workflows.
