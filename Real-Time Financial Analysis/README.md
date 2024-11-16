@@ -8,7 +8,6 @@ This project is an AI-powered financial dashboard that provides real-time analys
 - **Real-Time Stock Data**: Fetches historical and live stock data using **yfinance**.  
 - **Technical Analysis**: Computes key indicators such as Simple Moving Averages (SMA) and Relative Strength Index (RSI) using **ta**.  
 - **Sentiment Analysis**: Analyzes real-time financial news headlines using **Hugging Face Transformers** with **PyTorch** backend.  
-- **AI Agent Orchestration**: Uses **LangGraph** for modular, intelligent workflow management.  
 - **Trading Signal Generation**: Provides actionable insights (Buy, Sell, Hold) based on combined technical and sentiment analysis.  
 - **Data Logging**: Logs trading signals and analysis results into a **SQLite** database for tracking and evaluation.  
 - **Interactive Dashboard**: A user-friendly **Streamlit** interface for exploring stock trends, news sentiment, and trading signals.
@@ -22,7 +21,6 @@ This project is an AI-powered financial dashboard that provides real-time analys
 - **ta**  
 - **transformers**  
 - **torch**  
-- **LangGraph**  
 - **SQLite3**  
 
 ### Steps  
@@ -38,10 +36,9 @@ This project is an AI-powered financial dashboard that provides real-time analys
    streamlit run app.py
 
 ## Technologies Used
-1. LangGraph: For orchestrating AI agents and modular workflows.
-2. Streamlit: For building the interactive dashboard.
-3. yfinance: To fetch real-time stock market data.
-4. ta: For technical analysis indicators.
-5. Hugging Face Transformers: For sentiment analysis using pre-trained models.
-6. PyTorch: Backend framework for running the sentiment analysis models.
-7. SQLite: For logging and managing trading signals.
+1. Streamlit: For building the interactive dashboard.
+2. yfinance: To fetch real-time stock market data.
+3. ta: For technical analysis indicators.
+4. Hugging Face Transformers: For sentiment analysis using pre-trained models.
+5. PyTorch: Backend framework for running the sentiment analysis models.
+6. SQLite: For logging and managing trading signals.
