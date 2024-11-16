@@ -2,7 +2,7 @@
 # Real-Time Financial Analysis Dashboard  
 
 ## Overview  
-This project is an AI-powered financial dashboard that provides real-time analysis of stock data and financial news. It leverages **LangGraph** to orchestrate intelligent agents for dynamic workflows, enabling automated decision-making and actionable insights. The dashboard integrates advanced technical analysis and sentiment evaluation to generate trading signals, all within an interactive **Streamlit** interface.
+This project is an AI-powered financial dashboard that provides real-time analysis of stock data and financial news. The dashboard integrates advanced technical analysis and sentiment evaluation to generate trading signals, all within an interactive **Streamlit** interface.
 
 ## Features  
 - **Real-Time Stock Data**: Fetches historical and live stock data using **yfinance**.  
