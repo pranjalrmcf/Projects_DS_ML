@@ -20,7 +20,6 @@ stock_symbol = st.selectbox(
         "TSLA",  # Tesla
         "META",  # Meta Platforms (Facebook)
         "NFLX",  # Netflix
-
         "ADBE",  # Adobe
         "ORCL",  # Oracle
         "INTC",  # Intel
